@@ -3,85 +3,62 @@ import csv
 import requests
 from bs4 import BeautifulSoup
 
-URL = "http://www.alba.co.kr"
-# https://hochicken.alba.co.kr/job/brand/main.asp
-# 첫 페이지에 있는 슈퍼브랜드 채용정보 회사 스크랩
-# ul class goodsBox
-# li class impact
+os.system("clear")
 
-# 각각 회사 페이지에서 알바 정보 스크랩
-# div id NormalInfo
-# table > tBody > tr class ''
-# 각각의 .csv 파일로 만들어 저장하기
 
-def extract_company_and_url():
-  company_list = []
-  url_list = []
+def write_company(company):
+    file = open(f"{company['name']}.csv", mode="w")
+    writer = csv.writer(file)
+    writer.writerow(["place", "title", "time", "pay", "date"])
+    for job in company["jobs"]:
+      writer.writerow(list(job.values()))
+    print(f"Completed....{company['name']}")
 
-  req = requests.get(URL)
-  
-  soup = BeautifulSoup(req.text, 'html.parser')
 
-  main = soup.find('div', {'id':'MainSuperBrand'})
+alba_url = "http://www.alba.co.kr"
 
-  box = main.find('ul', {'class':'goodsBox'})
+alba_request = requests.get(alba_url)
+alba_soup = BeautifulSoup(alba_request.text, "html.parser")
+main = alba_soup.find("div", {"id": "MainSuperBrand"})
+brands = main.find_all("li", {"class": "impact"})
+for brand in brands:
+    link = brand.find("a", {"class": "goodsBox-info"})
+    name = brand.find("span", {"class": "company"})
+    if link and name:
+        link = link["href"]
+        name = name.text
+        if "/" in name :
+          name = name.replace("/"," ")
+        company = {'name': name, 'jobs': []}
+        jobs_request = requests.get(link)
+        jobs_soup = BeautifulSoup(jobs_request.text, "html.parser")
+        tbody = jobs_soup.find("div", {"id": "NormalInfo"}).find("tbody")
+        rows = tbody.find_all("tr", {"class": ""})
+        for row in rows:
+            local = row.find("td", {"class": "local"})
+            if local:
+                local = local.text
+            title = row.find("td", {"class": "title"})
+            if title:
+                title = title.find("a").find("span", {
+                    "class": "company"
+                }).text.strip()
 
-  lists = box.find_all('li', {'class':'impact'})
-  
-  for list in lists:
-    company = list.find('span', {'class':'company'}).string
-    url = list.find('a')['href']
-    company_list.append(company)
-    url_list.append(url)
-    
-  return company_list, url_list
-
-def extract_jobs(url):
-    info_list = []
-    req = requests.get(url)
-  
-    soup = BeautifulSoup(req.text, 'html.parser')
-  
-    main = soup.find('div', {'id':'NormalInfo'})
-  
-    table = main.find('table')
-  
-    tbody = table.find('tbody')
-
-    tr_list = tbody.find_all('tr')
-
-    for tr in tr_list:
-      place = tr.find('td', {'class':'local'}).text.strip()
-      title = tr.find('td', {'class':'title'}).text.strip()
-      time = tr.find('td', {'class':'data'}).text.strip()
-      pay = tr.find('td', {'class':'pay'}).text.strip()
-      last = tr.find('td', {'class':'last'}).text.strip()
-      info_list.append(place, title, time, pay, last)
-      
-      return info_list
-      # return {
-      #   'place': place,
-      #   'title': title,
-      #   'time': time,
-      #   'pay': pay,
-      #   'last': last
-      # }
-    
-def save_to_file(company):
-  file = open(f'{company}.csv', mode='w')
-  writer = csv.writer(file)
-  writer.writerow(['place', 'title', 'time', 'pay', 'date'])
-  # for job in company:
-  #   writer.writerow(list(job.values()))
-  return
-  
-if __name__ == '__main__':
-  os.system("clear")
-
-  company_list, url_list = extract_company_and_url()
-  
-  # for url in url_list:
-  #   print(extract_jobs(url))
-  for company in company_list:
-    save_to_file(company)
-    # print(company)
+            time = row.find("td", {"class": "data"})
+            if time:
+                time = time.text
+            pay = row.find("td", {"class": "pay"})
+            if pay:
+                pay = pay.text
+            date = row.find("td", {"class": "regDate"})
+            if date:
+                date = date.text
+            job = {
+                "place": local,
+                "title": title,
+                "time": time,
+                "pay": pay,
+                "date": date
+            }
+            company['jobs'].append(job)
+        write_company(company)
