@@ -15,8 +15,9 @@ URL = "http://www.alba.co.kr"
 # 각각의 .csv 파일로 만들어 저장하기
 
 def extract_company_and_url():
-  company_name = []
-  company_url = []
+  company_list = []
+  url_list = []
+
   req = requests.get(URL)
   
   soup = BeautifulSoup(req.text, 'html.parser')
@@ -30,31 +31,13 @@ def extract_company_and_url():
   for list in lists:
     company = list.find('span', {'class':'company'}).string
     url = list.find('a')['href']
-    company_name.append(company)
-    company_url.append(url)
+    company_list.append(company)
+    url_list.append(url)
     
-  return company_name, company_url
+  return company_list, url_list
 
-# def extract_url():
-#   company_url = []
-#   req = requests.get(URL)
-  
-#   soup = BeautifulSoup(req.text, 'html.parser')
-
-#   main = soup.find('div', {'id':'MainSuperBrand'})
-
-#   box = main.find('ul', {'class':'goodsBox'})
-
-#   lists = box.find_all('li', {'class':'impact'})
-  
-#   for list in lists:
-#     link = list.find('a')['href']
-#     company_url.append(link)
-
-#   return company_url
-  
-def extract_jobs(company_url):
-  for url in company_url:
+def extract_jobs(url):
+    info_list = []
     req = requests.get(url)
   
     soup = BeautifulSoup(req.text, 'html.parser')
@@ -68,33 +51,37 @@ def extract_jobs(company_url):
     tr_list = tbody.find_all('tr')
 
     for tr in tr_list:
-      place = tr.find('td', {'class':'local'}).text
-      title = tr.find('td', {'class':'title'}).text
-      time = tr.find('td', {'class':'data'}).text
-      pay = tr.find('td', {'class':'pay'}).text
-      last = tr.find('td', {'class':'last'}).text
-      return {
-        'place': place,
-        'title': title,
-        'time': time,
-        'pay': pay,
-        'last': last
-      }
+      place = tr.find('td', {'class':'local'}).text.strip()
+      title = tr.find('td', {'class':'title'}).text.strip()
+      time = tr.find('td', {'class':'data'}).text.strip()
+      pay = tr.find('td', {'class':'pay'}).text.strip()
+      last = tr.find('td', {'class':'last'}).text.strip()
+      info_list.append(place, title, time, pay, last)
+      
+      return info_list
+      # return {
+      #   'place': place,
+      #   'title': title,
+      #   'time': time,
+      #   'pay': pay,
+      #   'last': last
+      # }
     
-# def save_to_file(company = extract_company()):
-#   file = open(f'{company}.csv', mode='w')
-#   writer = csv.writer(file)
-#   writer.writerow(['place', 'title', 'time', 'pay', 'date'])
-#   for job in company:
-#     writer.writerow(list(job.values()))
-#   return
+def save_to_file(company):
+  file = open(f'{company}.csv', mode='w')
+  writer = csv.writer(file)
+  writer.writerow(['place', 'title', 'time', 'pay', 'date'])
+  # for job in company:
+  #   writer.writerow(list(job.values()))
+  return
   
 if __name__ == '__main__':
   os.system("clear")
 
-  company, url = extract_company_and_url()
+  company_list, url_list = extract_company_and_url()
   
-  print(company)
-  print(url)
-  # print(extract_jobs(extract_url()))
-  # save_to_file()
+  # for url in url_list:
+  #   print(extract_jobs(url))
+  for company in company_list:
+    save_to_file(company)
+    # print(company)
